@@ -3,39 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice-to-Text Lyrics Display</title>
+    <title>Voice-to-Text Transcription</title>
     <style>
         body {
             background-color: green;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
             color: white;
-            font-size: 2em;
             text-align: center;
+            font-family: Arial, sans-serif;
         }
     </style>
 </head>
 <body>
-    <div id="lyrics">Waiting for transcription...</div>
+    <h1>Voice Transcription</h1>
+    <button onclick="startTranscription()">Start Transcription</button>
+    <p id="transcription">Waiting for transcription...</p>
 
     <script>
-        function fetchTranscription() {
+        function startTranscription() {
             fetch('/transcribe')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('lyrics').textContent = data.text;
+                    document.getElementById('transcription').textContent = data.text;
                 })
                 .catch(error => {
                     console.error('Error:', error);
                 });
         }
-
-        // Fetch transcription every 5 seconds
-        setInterval(fetchTranscription, 5000);
     </script>
 </body>
 </html>
