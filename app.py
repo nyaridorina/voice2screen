@@ -1,50 +1,47 @@
-import pygame
+from flask import Flask, render_template, jsonify
 import speech_recognition as sr
+import threading
 
-# Initialize pygame
-pygame.init()
+app = Flask(__name__)
 
-# Screen dimensions
-screen_width = 800
-screen_height = 600
-screen = pygame.display.set_mode((screen_width, screen_height))
+recognizer = sr.Recognizer()
+transcription = ""  # This will hold the real-time transcription
 
-# Set up font and colors
-font = pygame.font.Font(None, 74)
-white = (255, 255, 255)
-green = (0, 255, 0)
 
-def display_text(text):
-    screen.fill(green)  # Fill background with green
-    text_surface = font.render(text, True, white)  # Render the text in white
-    screen.blit(text_surface, (50, 300))  # Display text in the center of the screen
-    pygame.display.flip()  # Update the screen
+def transcribe_audio():
+    global transcription
+    while True:
+        try:
+            with sr.Microphone() as source:
+                # Adjust for ambient noise and listen
+                recognizer.adjust_for_ambient_noise(source)
+                print("Listening...")
+                audio = recognizer.listen(source)
+                
+                # Recognize speech using Google Web Speech API
+                print("Recognizing...")
+                transcription = recognizer.recognize_google(audio)
+                print(f"Transcription: {transcription}")
+        except sr.UnknownValueError:
+            transcription = "Sorry, I could not understand the audio."
+        except sr.RequestError:
+            transcription = "Sorry, there was a request error."
 
-def recognize_and_display():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Adjusting for ambient noise... Please wait.")
-        r.adjust_for_ambient_noise(source)
-        print("Listening...")
-        audio = r.listen(source)
 
-    try:
-        print("Recognizing...")
-        text = r.recognize_google(audio)
-        display_text(text)
-    except sr.UnknownValueError:
-        display_text("Sorry, I could not understand the audio.")
-    except sr.RequestError:
-        display_text("Sorry, there was a request error.")
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-# Main loop
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
 
-    recognize_and_display()  # Run the voice recognition and display
-    pygame.time.wait(5000)  # Wait 5 seconds before listening again
+@app.route('/transcription')
+def get_transcription():
+    return jsonify({"text": transcription})
 
-pygame.quit()
+
+if __name__ == '__main__':
+    # Start the audio transcription in a separate thread
+    transcription_thread = threading.Thread(target=transcribe_audio)
+    transcription_thread.start()
+    
+    # Run the Flask app
+    app.run(debug=True, use_reloader=False)
