@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, render_template, request, jsonify
 import speech_recognition as sr
 
 app = Flask(__name__)
