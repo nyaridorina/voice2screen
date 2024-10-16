@@ -4,12 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Voice Transcription</title>
+    <style>
+        body {
+            background-color: green; /* Set background color to green */
+            color: white; /* Set text color to white */
+            font-family: Arial, sans-serif; /* Optional: Set a clear font */
+            text-align: center; /* Center the text */
+            margin-top: 20%; /* Adjust positioning */
+        }
+    </style>
 </head>
 <body>
-    <h1>Real-Time Voice Transcription</h1>
     <p id="transcription">Waiting for voice input...</p>
 
     <script>
+        // Your existing JavaScript for voice detection and transcription remains unchanged
         let mediaRecorder;
         let audioChunks = [];
         let audioContext;
