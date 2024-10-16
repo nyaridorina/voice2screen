@@ -5,13 +5,19 @@ let analyser;
 let microphone;
 let silenceTimeout;
 
+// Check microphone access and handle error
 navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => console.log("Microphone active"))
-    .catch(err => console.error("Microphone error", err));
+    .then(stream => {
+        console.log("Microphone active");
+        startListening(stream);  // Call main function if mic is active
+    })
+    .catch(err => {
+        console.error("Microphone error:", err);
+        document.getElementById('transcription').textContent = "Microphone access denied.";
+    });
 
-// Voice Activity Detection and Audio Capture
-async function startListening() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+// Start listening to the microphone
+function startListening(stream) {
     audioContext = new AudioContext();
     analyser = audioContext.createAnalyser();
     microphone = audioContext.createMediaStreamSource(stream);
@@ -28,6 +34,7 @@ async function startListening() {
     detectVoice();
 }
 
+// Voice detection and audio analysis
 function detectVoice() {
     const bufferLength = analyser.fftSize;
     const dataArray = new Uint8Array(bufferLength);
@@ -36,8 +43,9 @@ function detectVoice() {
         analyser.getByteTimeDomainData(dataArray);
         const maxVolume = Math.max(...dataArray);
 
-        // Adjust the sensitivity threshold here
-        if (maxVolume > 100) {  // Try lowering to 100 or less
+        console.log("Max volume:", maxVolume); // Debugging to track audio levels
+
+        if (maxVolume > 100) {  // Adjust the sensitivity threshold here
             console.log("Voice detected. Recording...");
             if (mediaRecorder.state === "inactive") {
                 audioChunks = [];
@@ -53,6 +61,7 @@ function detectVoice() {
     analyzeAudio();
 }
 
+// Stop recording after silence
 function stopRecording() {
     console.log("Stopping recording due to silence.");
     if (mediaRecorder.state === "recording") {
@@ -60,6 +69,7 @@ function stopRecording() {
     }
 }
 
+// Send recorded audio to the server
 function sendAudioToServer(chunks) {
     const blob = new Blob(chunks, { type: 'audio/wav; codecs=opus' });
     const formData = new FormData();
@@ -77,6 +87,3 @@ function sendAudioToServer(chunks) {
         console.error('Error:', error);
     });
 }
-
-// Start listening for voice input on page load
-window.onload = startListening;
