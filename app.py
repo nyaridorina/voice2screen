@@ -8,8 +8,11 @@ app = Flask(__name__)
 
 # Set your AssemblyAI API Key
 AIA_API_KEY = os.getenv("ASSEMBLYAI_API_KEY")
+print(f"API Key retrieved: {AIA_API_KEY}")  # Debugging: print the API key
+
 if not AIA_API_KEY:
     raise ValueError("Missing AssemblyAI API Key. Set it in your environment variables.")
+
 aai.settings.api_key = AIA_API_KEY
 transcriber = aai.Transcriber()
 
