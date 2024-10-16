@@ -1,4 +1,4 @@
 Flask==2.3.2
-assemblyai==0.10.3
+assemblyai==0.34.0
 gunicorn==20.1.0
 pygame==2.6.1
