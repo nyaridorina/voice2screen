@@ -5,6 +5,10 @@ let analyser;
 let microphone;
 let silenceTimeout;
 
+navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => console.log("Microphone active"))
+    .catch(err => console.error("Microphone error", err));
+
 // Voice Activity Detection and Audio Capture
 async function startListening() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
