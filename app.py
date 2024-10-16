@@ -13,7 +13,7 @@ print(f"API Key retrieved: {AIA_API_KEY}")  # Debugging: print the API key
 if not AIA_API_KEY:
     raise ValueError("Missing AssemblyAI API Key. Set it in your environment variables.")
 
-aai.settings.api_key = AIA_API_KEY
+aai.settings.api_key = "d6c1bc9c65e442cf974d3aeda69fa830"
 transcriber = aai.Transcriber()
 
 # Root route to serve the index.html page
