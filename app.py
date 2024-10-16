@@ -1,50 +1,30 @@
-import pygame
-import speech_recognition as sr
+from flask import Flask, request, jsonify
+import assemblyai as aai
+import os
 
-# Initialize pygame
-pygame.init()
+# Initialize Flask app
+app = Flask(__name__)
 
-# Screen dimensions
-screen_width = 800
-screen_height = 600
-screen = pygame.display.set_mode((screen_width, screen_height))
+# Set your AssemblyAI API Key
+AIA_API_KEY = os.getenv("ASSEMBLYAI_API_KEY", "d6c1bc9c65e442cf974d3aeda69fa830")
+aai.settings.api_key = AIA_API_KEY
+transcriber = aai.Transcriber()
 
-# Set up font and colors
-font = pygame.font.Font(None, 74)
-white = (255, 255, 255)
-green = (0, 255, 0)
+@app.route('/transcribe', methods=['POST'])
+def transcribe_audio():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
 
-def display_text(text):
-    screen.fill(green)  # Fill background with green
-    text_surface = font.render(text, True, white)  # Render the text in white
-    screen.blit(text_surface, (50, 300))  # Display text in the center of the screen
-    pygame.display.flip()  # Update the screen
+    audio_file = request.files['file']
+    audio_path = os.path.join("/tmp", audio_file.filename)
+    audio_file.save(audio_path)
 
-def recognize_and_display():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Adjusting for ambient noise... Please wait.")
-        r.adjust_for_ambient_noise(source)
-        print("Listening...")
-        audio = r.listen(source)
-
+    # Use AssemblyAI to transcribe the file
     try:
-        print("Recognizing...")
-        text = r.recognize_google(audio)
-        display_text(text)
-    except sr.UnknownValueError:
-        display_text("Sorry, I could not understand the audio.")
-    except sr.RequestError:
-        display_text("Sorry, there was a request error.")
+        transcript = transcriber.transcribe(audio_path)
+        return jsonify({"text": transcript.text}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-# Main loop
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-    recognize_and_display()  # Run the voice recognition and display
-    pygame.time.wait(5000)  # Wait 5 seconds before listening again
-
-pygame.quit()
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
