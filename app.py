@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import assemblyai as aai
 import os
 import tempfile
+import time
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -13,7 +14,7 @@ print(f"API Key retrieved: {AIA_API_KEY}")  # Debugging: print the API key
 if not AIA_API_KEY:
     raise ValueError("Missing AssemblyAI API Key. Set it in your environment variables.")
 
-aai.settings.api_key = "d6c1bc9c65e442cf974d3aeda69fa830"
+aai.settings.api_key = AIA_API_KEY
 transcriber = aai.Transcriber()
 
 # Root route to serve the index.html page
@@ -35,10 +36,11 @@ def transcribe_audio():
 
     # Use AssemblyAI to transcribe the file
     try:
-        transcript = transcriber.transcribe(audio_path)
-        if not transcript.success:
-            return jsonify({"error": "Transcription failed"}), 500
-        return jsonify({"text": transcript.text}), 200
+        transcript_response = transcriber.transcribe(audio_path)
+        while not transcript_response.success:
+            time.sleep(5)  # Polling the result with a 5-second delay
+            transcript_response = transcriber.get_transcription(transcript_response.id)
+        return jsonify({"text": transcript_response.text}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
