@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-import assemblyai as aai
+import requests
 import os
 import tempfile
 import time
@@ -14,8 +14,7 @@ print(f"API Key retrieved: {AIA_API_KEY}")  # Debugging: print the API key
 if not AIA_API_KEY:
     raise ValueError("Missing AssemblyAI API Key. Set it in your environment variables.")
 
-aai.settings.api_key = AIA_API_KEY
-transcriber = aai.Transcriber()
+HEADERS = {'authorization': AIA_API_KEY}
 
 # Root route to serve the index.html page
 @app.route('/')
@@ -30,19 +29,44 @@ def transcribe_audio():
 
     # Save the uploaded file temporarily
     audio_file = request.files['file']
-    with tempfile.NamedTemporaryFile(delete=False) as temp_audio_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
         audio_file.save(temp_audio_file.name)
         audio_path = temp_audio_file.name
 
-    # Use AssemblyAI to transcribe the file
+    # Upload the audio file to AssemblyAI
     try:
-        transcript_response = transcriber.transcribe(audio_path)
-        while not transcript_response.success:
-            time.sleep(5)  # Polling the result with a 5-second delay
-            transcript_response = transcriber.get_transcription(transcript_response.id)
-        return jsonify({"text": transcript_response.text}), 200
+        with open(audio_path, 'rb') as f:
+            response = requests.post('https://api.assemblyai.com/v2/upload', headers=HEADERS, data=f)
+            response.raise_for_status()
+            upload_url = response.json()['upload_url']
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to upload audio file: {str(e)}"}), 500
+
+    # Request transcription
+    try:
+        transcript_request = {
+            "audio_url": upload_url
+        }
+        transcript_response = requests.post('https://api.assemblyai.com/v2/transcript', json=transcript_request, headers=HEADERS)
+        transcript_response.raise_for_status()
+        transcript_id = transcript_response.json()['id']
+    except Exception as e:
+        return jsonify({"error": f"Failed to request transcription: {str(e)}"}), 500
+
+    # Poll for transcription result
+    try:
+        transcript_status_url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
+        while True:
+            transcript_result = requests.get(transcript_status_url, headers=HEADERS)
+            transcript_result.raise_for_status()
+            result = transcript_result.json()
+            if result['status'] == 'completed':
+                return jsonify({"text": result['text']}), 200
+            elif result['status'] == 'failed':
+                return jsonify({"error": "Transcription failed"}), 500
+            time.sleep(5)  # Polling interval
+    except Exception as e:
+        return jsonify({"error": f"Error during transcription polling: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
